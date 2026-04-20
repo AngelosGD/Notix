@@ -18,7 +18,7 @@ const Stack = createStackNavigator()
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="AddTask" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="AddNote" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="AddTask"      component={AddTask} />
         <Stack.Screen name="Notes"        component={Notes} />
         <Stack.Screen name="Folders"      component={Folders} />
