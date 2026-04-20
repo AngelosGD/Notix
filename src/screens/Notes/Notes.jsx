@@ -1,39 +1,223 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native'
+import { useState } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  FlatList,
+  StatusBar,
+  Alert,
+} from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../context/ThemeContext'
 
-export default function Notes({ navigation }) {
-  const { accent, bg, textColor } = useTheme()
+
+export default function AddNote({ navigation }) {
+  const { accent, bg, cardBg, textColor, subColor, divColor } = useTheme()
+
+  const [busqueda,     setBusqueda]     = useState('')
+  const [filtroActivo, setFiltroActivo] = useState('este_mes')
+  const [notas,        setNotas]        = useState(NOTAS_EJEMPLO)
+
+  // ── Filtrar por tab + búsqueda ──────────────────────────────────────────────
+  const notasFiltradas = notas.filter(n => {
+    const coincideFiltro   = n.fecha === filtroActivo
+    const coincideBusqueda = n.titulo.toLowerCase().includes(busqueda.toLowerCase())
+    return coincideFiltro && coincideBusqueda
+  })
+
+  // ── Eliminar nota ───────────────────────────────────────────────────────────
+  const eliminarNota = (id) => {
+    Alert.alert(
+      'Eliminar nota',
+      '¿Seguro que quieres eliminar esta nota?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => setNotas(prev => prev.filter(n => n.id !== id)),
+        },
+      ]
+    )
+  }
+
+  // ── Opciones extra (menú hamburguesa) ──────────────────────────────────────
+  const masOpciones = (nota) => {
+    Alert.alert(nota.titulo, 'Más opciones', [
+      { text: 'Editar',      onPress: () => navigation.navigate('NoteForm', { nota }) },
+      { text: 'Mapa mental', onPress: () => navigation.navigate('MindMap',  { nota }) },
+      { text: 'Cancelar',    style: 'cancel' },
+    ])
+  }
+
+  // ── Render de cada nota ─────────────────────────────────────────────────────
+  const renderNota = ({ item }) => (
+    <TouchableOpacity
+      style={[styles.notaCard, { backgroundColor: cardBg }]}
+      onPress={() => navigation.navigate('NoteForm', { nota: item })}
+      activeOpacity={0.75}
+    >
+      <View style={[styles.accentBar, { backgroundColor: accent }]} />
+
+      <Text style={[styles.notaTitulo, { color: textColor }]} numberOfLines={1}>
+        {item.titulo}
+      </Text>
+
+      <View style={styles.notaAcciones}>
+        <TouchableOpacity onPress={() => eliminarNota(item.id)} style={styles.accionBtn}>
+          <Ionicons name="trash-outline" size={20} color={subColor} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => masOpciones(item)} style={styles.accionBtn}>
+          <Ionicons name="menu-outline" size={22} color={subColor} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  )
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <StatusBar barStyle={bg === '#111111' ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: bg }]}>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Notas</Text>
-        <View style={styles.headerIcons}>
-          
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-            <Ionicons name="settings-outline" size={24} color={textColor} />
-          </TouchableOpacity>
-        </View>
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: textColor }]}>Agrega Nota</Text>
       </View>
 
-      
+      {/* Buscador */}
+      <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor: accent }]}>
+        <Ionicons name="search-outline" size={18} color={subColor} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[styles.searchInput, { color: textColor }]}
+          placeholder="Buscar nota..."
+          placeholderTextColor={subColor}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        {busqueda.length > 0 && (
+          <TouchableOpacity onPress={() => setBusqueda('')}>
+            <Ionicons name="close-circle" size={18} color={subColor} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-      
+      {/* Filtros por fecha */}
+      <View style={styles.filtros}>
+        {[
+          { key: 'este_mes',   label: 'Este mes'   },
+          { key: 'mes_pasado', label: 'Mes pasado' },
+        ].map(f => {
+          const activo = filtroActivo === f.key
+          return (
+            <TouchableOpacity
+              key={f.key}
+              style={[
+                styles.filtroBtn,
+                { borderColor: accent },
+                activo && { backgroundColor: accent },
+              ]}
+              onPress={() => setFiltroActivo(f.key)}
+            >
+              <Text style={[styles.filtroLabel, { color: activo ? '#fff' : textColor }]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
+      <View style={[styles.lineaSep, { backgroundColor: divColor }]} />
+
+      {/* Lista de notas */}
+      <FlatList
+        data={notasFiltradas}
+        keyExtractor={item => item.id}
+        renderItem={renderNota}
+        contentContainerStyle={styles.lista}
+        ItemSeparatorComponent={() => (
+          <View style={[styles.separador, { backgroundColor: divColor }]} />
+        )}
+        ListEmptyComponent={
+          <View style={styles.vacio}>
+            <Ionicons name="document-text-outline" size={48} color={subColor} />
+            <Text style={[styles.vacioText, { color: subColor }]}>
+              {busqueda ? 'Sin resultados' : 'No hay notas aquí todavía'}
+            </Text>
+          </View>
+        }
+      />
+
+      {/* FAB - Agregar nota */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: accent }]}
+        onPress={() => navigation.navigate('NoteForm')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add" size={32} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Bottom Tab Bar */}
+      <View style={[styles.tabBar, { backgroundColor: cardBg, borderTopColor: divColor }]}>
+        <TouchableOpacity style={styles.tab}>
+          <Text style={[styles.tabLabel, { color: accent }]}>Notas</Text>
+          <View style={[styles.tabIndicador, { backgroundColor: accent }]} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} onPress={() => navigation.navigate('AddTask')}>
+          <Text style={[styles.tabLabel, { color: subColor }]}>Tareas</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1 },
-  header:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20 },
+  container: { flex: 1 },
+
+  header: { paddingTop: 56, paddingBottom: 12, paddingHorizontal: 20 },
   headerTitle: { fontSize: 28, fontWeight: 'bold' },
-  headerIcons: { flexDirection: 'row', gap: 8 },
-  iconBtn:     { padding: 8, borderRadius: 8 },
-  emptyState:  { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyText:   { fontSize: 16 },
-  fab:         { position: 'absolute', bottom: 28, right: 24, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', elevation: 4 },
+
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 20, marginBottom: 14,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 12, borderWidth: 1.5,
+  },
+  searchInput: { flex: 1, fontSize: 15, padding: 0 },
+
+  filtros: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 12, gap: 10 },
+  filtroBtn: { flex: 1, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, alignItems: 'center' },
+  filtroLabel: { fontSize: 14, fontWeight: '600' },
+
+  lineaSep: { height: 1, marginHorizontal: 20, marginBottom: 4 },
+
+  lista: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 100 },
+  separador: { height: 1 },
+
+  notaCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18, paddingRight: 8 },
+  accentBar: { width: 3, height: 34, borderRadius: 2, marginRight: 14 },
+  notaTitulo: { flex: 1, fontSize: 15, fontWeight: '600' },
+  notaAcciones: { flexDirection: 'row', gap: 4, marginLeft: 8 },
+  accionBtn: { padding: 6 },
+
+  vacio: { alignItems: 'center', paddingTop: 64, gap: 12 },
+  vacioText: { fontSize: 15 },
+
+  fab: {
+    position: 'absolute', bottom: 76, right: 24,
+    width: 58, height: 58, borderRadius: 29,
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3, shadowRadius: 6,
+  },
+
+  tabBar: {
+    flexDirection: 'row', position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    height: 64, borderTopWidth: 1,
+  },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tabLabel: { fontSize: 15, fontWeight: '600' },
+  tabIndicador: { position: 'absolute', bottom: 0, height: 2, width: '40%', borderRadius: 2 },
 })
