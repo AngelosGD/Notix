@@ -34,7 +34,7 @@ const INITIAL_TASKS = [
 
 const UPCOMING_COUNT = 3;
 
-export default function AddTask() {
+export default function AddTask({ navigation }) {
   const [tasks, setTasks] = useState(INITIAL_TASKS);
   const [filter, setFilter] = useState('Todas'); // 'Todas' | 'Activas' | 'Hechas'
   const [search, setSearch] = useState('');
@@ -69,6 +69,7 @@ export default function AddTask() {
       onSearchChange={setSearch}
       onToggleTask={toggleTask}
       onAddTask={addTask}
+      navigation={navigation}
     />
   );
 }

@@ -11,10 +11,19 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../context/ThemeContext'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
+// ── Datos de ejemplo ─────────────────────────────────────────────────────────
+const NOTAS_EJEMPLO = [
+  { id: '1', titulo: 'Nota de ejemplo 1', fecha: 'este_mes' },
+  { id: '2', titulo: 'Nota de ejemplo 2', fecha: 'este_mes' },
+  { id: '3', titulo: 'Nota del mes pasado', fecha: 'mes_pasado' },
+  { id: '4', titulo: 'Otra nota', fecha: 'este_mes' },
+]
 
 export default function AddNote({ navigation }) {
   const { accent, bg, cardBg, textColor, subColor, divColor } = useTheme()
+  const insets = useSafeAreaInsets()
 
   const [busqueda,     setBusqueda]     = useState('')
   const [filtroActivo, setFiltroActivo] = useState('este_mes')
@@ -77,12 +86,18 @@ export default function AddNote({ navigation }) {
   )
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity onPress={() => navigation.navigate('Folders')}>
+          <Ionicons name="folder-outline" size={24} color={textColor} />
+        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: textColor }]}>Agrega Nota</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+          <Ionicons name="settings-outline" size={24} color={textColor} />
+        </TouchableOpacity>
       </View>
 
       {/* Buscador */}
@@ -150,7 +165,7 @@ export default function AddNote({ navigation }) {
 
       {/* FAB - Agregar nota */}
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: accent }]}
+        style={[styles.fab, { backgroundColor: accent, bottom: 76 + insets.bottom }]}
         onPress={() => navigation.navigate('NoteForm')}
         activeOpacity={0.85}
       >
@@ -158,7 +173,7 @@ export default function AddNote({ navigation }) {
       </TouchableOpacity>
 
       {/* Bottom Tab Bar */}
-      <View style={[styles.tabBar, { backgroundColor: cardBg, borderTopColor: divColor }]}>
+      <View style={[styles.tabBar, { backgroundColor: cardBg, borderTopColor: divColor, bottom: insets.bottom }]}>
         <TouchableOpacity style={styles.tab}>
           <Text style={[styles.tabLabel, { color: accent }]}>Notas</Text>
           <View style={[styles.tabIndicador, { backgroundColor: accent }]} />
@@ -167,14 +182,20 @@ export default function AddNote({ navigation }) {
           <Text style={[styles.tabLabel, { color: subColor }]}>Tareas</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  header: { paddingTop: 56, paddingBottom: 12, paddingHorizontal: 20 },
+  header: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12, 
+    paddingHorizontal: 20 
+  },
   headerTitle: { fontSize: 28, fontWeight: 'bold' },
 
   searchBox: {
@@ -191,7 +212,7 @@ const styles = StyleSheet.create({
 
   lineaSep: { height: 1, marginHorizontal: 20, marginBottom: 4 },
 
-  lista: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 100 },
+  lista: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 120 },
   separador: { height: 1 },
 
   notaCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18, paddingRight: 8 },
@@ -204,18 +225,20 @@ const styles = StyleSheet.create({
   vacioText: { fontSize: 15 },
 
   fab: {
-    position: 'absolute', bottom: 76, right: 24,
+    position: 'absolute', right: 24,
     width: 58, height: 58, borderRadius: 29,
     justifyContent: 'center', alignItems: 'center',
     elevation: 6,
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3, shadowRadius: 6,
+    zIndex: 1001,
   },
 
   tabBar: {
     flexDirection: 'row', position: 'absolute',
     bottom: 0, left: 0, right: 0,
     height: 64, borderTopWidth: 1,
+    zIndex: 1000,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontSize: 15, fontWeight: '600' },

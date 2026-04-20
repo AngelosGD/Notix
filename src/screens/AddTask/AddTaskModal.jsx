@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Modal,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -92,10 +94,21 @@ export default function AddTaskModal({
   onSearchChange,
   onToggleTask,
   onAddTask,
+  navigation,
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [activeTab, setActiveTab] = useState('Tareas'); // 'Notas' | 'Tareas'
+  const insets = useSafeAreaInsets();
+  const { accent, bg, cardBg, textColor, subColor, divColor } = useTheme();
+
+  const handleTabPress = (tab) => {
+    if (tab === 'Notas') {
+      navigation.navigate('Notes');
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   const handleAdd = () => {
     if (!newTitle.trim()) return;
@@ -104,27 +117,37 @@ export default function AddTaskModal({
       subtitle: 'Hoy · Personal',
       tag: null,
       tagColor: null,
-      borderColor: C.teal,
+      borderColor: accent,
     });
     setNewTitle('');
     setModalVisible(false);
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
+      <StatusBar barStyle="light-content" backgroundColor={bg} />
 
       <View style={styles.container}>
         {/* ── Header ── */}
-        <Text style={styles.header}>Agregar Tareas</Text>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <TouchableOpacity onPress={() => navigation.navigate('Folders')}>
+            <Ionicons name="folder-outline" size={24} color={textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Agregar Tareas</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings-outline" size={24} color={textColor} />
+          </TouchableOpacity>
+        </View>
 
         {/* ── Search bar ── */}
-        <View style={styles.searchBar}>
-          <View style={styles.searchCircle} />
+        <View style={[styles.searchBar, { backgroundColor: cardBg, borderColor: accent }]}>
+          <View style={[styles.searchCircle, { borderColor: accent }]}>
+            <Ionicons name="search" size={16} color={accent} />
+          </View>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: textColor }]}
             placeholder="Buscar tarea..."
-            placeholderTextColor={C.textMuted}
+            placeholderTextColor={subColor}
             value={search}
             onChangeText={onSearchChange}
           />
@@ -152,6 +175,7 @@ export default function AddTaskModal({
           )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             <>
@@ -178,26 +202,27 @@ export default function AddTaskModal({
 
       {/* ── FAB ── */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: 70 + insets.bottom, backgroundColor: accent, shadowColor: accent }]}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.85}
       >
-        <Text style={styles.fabIcon}>+</Text>
+        <Text style={[styles.fabIcon, { color: bg }]}>+</Text>
       </TouchableOpacity>
 
       {/* ── Bottom nav ── */}
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { bottom: insets.bottom, backgroundColor: cardBg, borderTopColor: divColor }]}>
         {['Notas', 'Tareas'].map((tab) => (
           <TouchableOpacity
             key={tab}
             style={styles.navItem}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => handleTabPress(tab)}
             activeOpacity={0.7}
           >
             <Text
               style={[
                 styles.navLabel,
                 activeTab === tab && styles.navLabelActive,
+                { color: activeTab === tab ? accent : subColor },
               ]}
             >
               {tab}
@@ -254,7 +279,6 @@ export default function AddTaskModal({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: C.bg,
   },
   container: {
     flex: 1,
@@ -264,10 +288,14 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+  },
+  headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: C.text,
-    marginBottom: 20,
     letterSpacing: 0.2,
   },
 
@@ -437,22 +465,19 @@ const styles = StyleSheet.create({
   // FAB
   fab: {
     position: 'absolute',
-    bottom: 70,
     right: 20,
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: C.teal,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: C.teal,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
+    zIndex: 1001,
   },
   fabIcon: {
-    color: C.bg,
     fontSize: 28,
     fontWeight: '300',
     lineHeight: 32,
@@ -462,21 +487,22 @@ const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: C.border,
     paddingVertical: 12,
-    backgroundColor: C.bg,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
   },
   navLabel: {
-    color: C.textMuted,
     fontSize: 14,
     fontWeight: '500',
   },
   navLabelActive: {
-    color: C.teal,
     fontWeight: '600',
   },
 

@@ -18,7 +18,7 @@ const Stack = createStackNavigator()
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="AddNote" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Notes" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="AddTask"      component={AddTask} />
         <Stack.Screen name="Notes"        component={Notes} />
         <Stack.Screen name="Folders"      component={Folders} />
@@ -27,7 +27,6 @@ export default function AppNavigator() {
         <Stack.Screen name="XiaomiCloud"  component={XiaomiCloud} />
         <Stack.Screen name="XiaomiLogin"  component={XiaomiLogin} />
         <Stack.Screen name="DeletedItems" component={DeletedItems} />
-        <Stack.Screen name="AddNote"      component={AddNote} />
         <Stack.Screen name="NoteForm"     component={NoteForm} />
         <Stack.Screen name="MindMap"      component={MindMap} />
       </Stack.Navigator>
