@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -14,53 +14,87 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../context/ThemeContext'
+import { useDatabase } from '../../context/DatabaseContext'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-
-const NOTAS_EJEMPLO = [
-  { id: '1', titulo: 'Nota de ejemplo 1', fecha: 'este_mes'   },
-  { id: '2', titulo: 'Nota de ejemplo 2', fecha: 'este_mes'   },
-  { id: '3', titulo: 'Otra nota',         fecha: 'este_mes'   },
-  { id: '4', titulo: 'Nota del mes pasado', fecha: 'mes_pasado' },
-]
 
 export default function AddNote({ navigation }) {
   const { accent, bg, cardBg, textColor, subColor, divColor } = useTheme()
   const insets = useSafeAreaInsets()
+  const { notes, createNote, deleteNote, loading } = useDatabase()
 
   const [busqueda,     setBusqueda]     = useState('')
   const [filtroActivo, setFiltroActivo] = useState('este_mes')
-  const [notas,        setNotas]        = useState(NOTAS_EJEMPLO)
   const [modalVisible, setModalVisible] = useState(false)
 
   // ── Estados del formulario dentro del modal ─────────────────────────────────
   const [nuevoTitulo,    setNuevoTitulo]    = useState('')
   const [nuevoContenido, setNuevoContenido] = useState('')
 
-  const notasFiltradas = notas.filter(n => {
+  // ── Preparar notas para mostrar ────────────────────────────────────────────
+  const notasFormateadas = notes.map(note => ({
+    id: note.id,
+    titulo: note.title || 'Sin título',
+    fecha: new Date(note.created_at).getMonth() === new Date().getMonth() ? 'este_mes' : 'mes_pasado',
+    content: note.content,
+    type: note.type || 'note',
+  }))
+
+  const notasFiltradas = notasFormateadas.filter(n => {
     const coincideFiltro   = n.fecha === filtroActivo
     const coincideBusqueda = n.titulo.toLowerCase().includes(busqueda.toLowerCase())
     return coincideFiltro && coincideBusqueda
   })
 
   // ── Crear nota nueva ────────────────────────────────────────────────────────
-  const crearNota = () => {
+  const crearNota = async () => {
     if (!nuevoTitulo.trim()) {
       Alert.alert('Título requerido', 'Por favor escribe un título para la nota.')
       return
     }
-    const nueva = {
-      id:     Date.now().toString(),
-      titulo: nuevoTitulo.trim(),
-      contenido: nuevoContenido.trim(),
-      fecha:  filtroActivo, // la agrega al tab activo
+
+    const nuevaNota = {
+      title: nuevoTitulo.trim(),
+      content: nuevoContenido.trim(),
+      type: 'note',
     }
-    setNotas(prev => [nueva, ...prev])
-    setNuevoTitulo('')
-    setNuevoContenido('')
-    setModalVisible(false)
+
+    const result = await createNote(nuevaNota)
+    if (result) {
+      setNuevoTitulo('')
+      setNuevoContenido('')
+      setModalVisible(false)
+      Alert.alert('Éxito', 'Nota creada correctamente')
+    } else {
+      Alert.alert('Error', 'No se pudo crear la nota')
+    }
   }
 
-  const eliminarNota = (id) => {
+  // ── Crear mapa mental ───────────────────────────────────────────────────────
+  const crearMapaMental = async () => {
+    if (!nuevoTitulo.trim()) {
+      Alert.alert('Título requerido', 'Por favor escribe un título para el mapa mental.')
+      return
+    }
+
+    const nuevaNota = {
+      title: nuevoTitulo.trim(),
+      content: nuevoContenido.trim(),
+      type: 'mindmap',
+    }
+
+    const result = await createNote(nuevaNota)
+    if (result) {
+      setNuevoTitulo('')
+      setNuevoContenido('')
+      setModalVisible(false)
+      // Navegar a MindMap con la nota creada
+      navigation.navigate('MindMap', { nota: result })
+    } else {
+      Alert.alert('Error', 'No se pudo crear el mapa mental')
+    }
+  }
+
+  const eliminarNota = async (id) => {
     Alert.alert(
       'Eliminar nota',
       '¿Seguro que quieres eliminar esta nota?',
@@ -69,7 +103,14 @@ export default function AddNote({ navigation }) {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => setNotas(prev => prev.filter(n => n.id !== id)),
+          onPress: async () => {
+            const success = await deleteNote(id)
+            if (success) {
+              Alert.alert('Éxito', 'Nota eliminada correctamente')
+            } else {
+              Alert.alert('Error', 'No se pudo eliminar la nota')
+            }
+          },
         },
       ]
     )
@@ -86,7 +127,13 @@ export default function AddNote({ navigation }) {
   const renderNota = ({ item }) => (
     <TouchableOpacity
       style={[styles.notaCard, { backgroundColor: cardBg }]}
-      onPress={() => navigation.navigate('NoteForm', { nota: item })}
+      onPress={() => {
+        if (item.type === 'mindmap') {
+          navigation.navigate('MindMap', { nota: item })
+        } else {
+          navigation.navigate('NoteEditor', { nota: item })
+        }
+      }}
       activeOpacity={0.75}
     >
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
@@ -250,12 +297,21 @@ export default function AddNote({ navigation }) {
               >
                 <Text style={[styles.btnCancelarText, { color: subColor }]}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btnCrear, { backgroundColor: accent }]}
-                onPress={crearNota}
-              >
-                <Text style={styles.btnCrearText}>Crear nota</Text>
-              </TouchableOpacity>
+              <View style={styles.crearBtns}>
+                <TouchableOpacity
+                  style={[styles.btnMapaMental, { backgroundColor: '#7C63FF' }]}
+                  onPress={crearMapaMental}
+                >
+                  <Ionicons name="git-network-outline" size={16} color="#fff" />
+                  <Text style={styles.btnMapaMentalText}>Mapa Mental</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btnCrear, { backgroundColor: accent }]}
+                  onPress={crearNota}
+                >
+                  <Text style={styles.btnCrearText}>Crear nota</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
           </View>
@@ -340,6 +396,9 @@ const styles = StyleSheet.create({
   modalBtns: { flexDirection: 'row', gap: 12 },
   btnCancelar: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', borderWidth: 1 },
   btnCancelarText: { fontSize: 15, fontWeight: '600' },
+  crearBtns: { flex: 1, flexDirection: 'row', gap: 8 },
+  btnMapaMental: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', flexDirection: 'row', gap: 6 },
+  btnMapaMentalText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   btnCrear: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
   btnCrearText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 })

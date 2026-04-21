@@ -1,62 +1,45 @@
 // src/screens/AddTask/AddTask.jsx
 import React, { useState } from 'react';
 import AddTaskModal from './AddTaskModal';
-
-const INITIAL_TASKS = [
-  {
-    id: '1',
-    title: 'Comprar despensa',
-    subtitle: 'Hoy · Personal',
-    tag: 'URGENTE',
-    tagColor: '#FF4444',
-    borderColor: '#FF4444',
-    completed: false,
-  },
-  {
-    id: '2',
-    title: 'Revisar pull request',
-    subtitle: 'Hoy · Trabajo',
-    tag: 'TRABAJO',
-    tagColor: '#6C63FF',
-    borderColor: '#F5C518',
-    completed: false,
-  },
-  {
-    id: '3',
-    title: 'Correo enviado',
-    subtitle: 'Completado 14:30',
-    tag: null,
-    tagColor: null,
-    borderColor: '#3D3D3D',
-    completed: true,
-  },
-];
+import { useDatabase } from '../../context/DatabaseContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const UPCOMING_COUNT = 3;
 
 export default function AddTask({ navigation }) {
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const { tasks, createTask, toggleTask, deleteTask } = useDatabase();
+  const { accent } = useTheme();
   const [filter, setFilter] = useState('Todas'); // 'Todas' | 'Activas' | 'Hechas'
   const [search, setSearch] = useState('');
 
-  const filteredTasks = tasks.filter((t) => {
+  // ── Formatear tareas para el componente ──────────────────────────────────────
+  const formattedTasks = tasks.map(task => ({
+    id: task.id,
+    title: task.title,
+    subtitle: `Creada ${new Date(task.created_at).toLocaleDateString()}`,
+    tag: null,
+    tagColor: null,
+    borderColor: task.done ? '#3D3D3D' : accent,
+    completed: task.done,
+  }));
+
+  const filteredTasks = formattedTasks.filter((t) => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase());
     if (filter === 'Activas') return !t.completed && matchesSearch;
     if (filter === 'Hechas') return t.completed && matchesSearch;
     return matchesSearch;
   });
 
-  const toggleTask = (id) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  const handleToggleTask = async (id) => {
+    await toggleTask(id);
   };
 
-  const addTask = (newTask) => {
-    setTasks((prev) => [
-      ...prev,
-      { ...newTask, id: Date.now().toString(), completed: false },
-    ]);
+  const handleAddTask = async (newTask) => {
+    await createTask({ title: newTask.title });
+  };
+
+  const handleDeleteTask = async (id) => {
+    await deleteTask(id);
   };
 
   return (
@@ -67,8 +50,9 @@ export default function AddTask({ navigation }) {
       upcomingCount={UPCOMING_COUNT}
       onFilterChange={setFilter}
       onSearchChange={setSearch}
-      onToggleTask={toggleTask}
-      onAddTask={addTask}
+      onToggleTask={handleToggleTask}
+      onAddTask={handleAddTask}
+      onDeleteTask={handleDeleteTask}
       navigation={navigation}
     />
   );

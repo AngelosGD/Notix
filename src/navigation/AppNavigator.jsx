@@ -9,6 +9,7 @@ import XiaomiCloud from '../screens/XiaomiCloud'
 import XiaomiLogin from '../screens/XiaomiLogin'
 import DeletedItems from '../screens/DeletedItems'
 import NoteForm from '../screens/NoteForm'
+import NoteEditor from '../screens/NoteEditor'
 import MindMap from '../screens/MindMap'
 import AddTask from '../screens/AddTask/AddTask'
 
@@ -27,6 +28,7 @@ export default function AppNavigator() {
         <Stack.Screen name="XiaomiLogin"  component={XiaomiLogin} />
         <Stack.Screen name="DeletedItems" component={DeletedItems} />
         <Stack.Screen name="NoteForm"     component={NoteForm} />
+        <Stack.Screen name="NoteEditor"   component={NoteEditor} />
         <Stack.Screen name="MindMap"      component={MindMap} />
       </Stack.Navigator>
     </NavigationContainer>

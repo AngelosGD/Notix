@@ -7,6 +7,9 @@ const ThemeContext = createContext()
 export function ThemeProvider({ children }) {
   const [darkMode, setDarkMode]             = useState(true)
   const [selectedAccent, setSelectedAccent] = useState(0)
+  const [fontSize, setFontSize]             = useState('Mediana')
+  const [order, setOrder]                   = useState('Por fecha de modificación')
+  const [design, setDesign]                 = useState('Ver en cuadrícula')
 
   const accent     = ACCENT_COLORS[selectedAccent]
   const bg         = darkMode ? '#111111' : '#F2F2F7'
@@ -20,6 +23,9 @@ export function ThemeProvider({ children }) {
     <ThemeContext.Provider value={{
       darkMode, setDarkMode,
       selectedAccent, setSelectedAccent,
+      fontSize, setFontSize,
+      order, setOrder,
+      design, setDesign,
       accent, bg, cardBg, textColor, subColor, divColor, labelColor,
       ACCENT_COLORS,
     }}>

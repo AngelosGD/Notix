@@ -32,52 +32,61 @@ const C = {
 };
 
 // ─── TaskItem ────────────────────────────────────────────────────────────────
-function TaskItem({ task, onToggle }) {
+function TaskItem({ task, onToggle, onDelete, accent, cardBg, textColor, subColor, divColor }) {
   return (
-    <View style={[styles.taskCard, { borderLeftColor: task.borderColor }]}>
+    <View style={[styles.taskCard, { borderLeftColor: task.borderColor, backgroundColor: cardBg }]}>
       <TouchableOpacity
-        style={[styles.checkbox, task.completed && styles.checkboxDone]}
+        style={[styles.checkbox, task.completed && styles.checkboxDone, { borderColor: divColor }]}
         onPress={() => onToggle(task.id)}
         activeOpacity={0.7}
       >
-        {task.completed && <Text style={styles.checkmark}>✓</Text>}
+        {task.completed && <Text style={[styles.checkmark, { color: accent }]}>✓</Text>}
       </TouchableOpacity>
 
       <View style={styles.taskInfo}>
         <Text
-          style={[styles.taskTitle, task.completed && styles.taskTitleDone]}
+          style={[styles.taskTitle, task.completed && styles.taskTitleDone, { color: textColor }]}
           numberOfLines={2}
         >
           {task.title}
         </Text>
-        <Text style={styles.taskSub}>{task.subtitle}</Text>
+        <Text style={[styles.taskSub, { color: subColor }]}>{task.subtitle}</Text>
       </View>
 
-      {task.tag && (
-        <View
-          style={[
-            styles.tag,
-            { backgroundColor: task.tagColor + '22', borderColor: task.tagColor },
-          ]}
+      <View style={styles.taskActions}>
+        {task.tag && (
+          <View
+            style={[
+              styles.tag,
+              { backgroundColor: task.tagColor + '22', borderColor: task.tagColor },
+            ]}
+          >
+            <Text style={[styles.tagText, { color: task.tagColor }]}>
+              {task.tag}
+            </Text>
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={() => onDelete(task.id)}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.tagText, { color: task.tagColor }]}>
-            {task.tag}
-          </Text>
-        </View>
-      )}
+          <Ionicons name="trash-outline" size={20} color="#FF4444" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 // ─── FilterPill ──────────────────────────────────────────────────────────────
-function FilterPill({ label, active, onPress }) {
+function FilterPill({ label, active, onPress, accent, cardBg, textColor, subColor, divColor }) {
   return (
     <TouchableOpacity
-      style={[styles.pill, active && styles.pillActive]}
+      style={[styles.pill, active && styles.pillActive, { borderColor: divColor }, active && { backgroundColor: accent, borderColor: accent }]}
       onPress={onPress}
       activeOpacity={0.75}
     >
-      <Text style={[styles.pillText, active && styles.pillTextActive]}>
+      <Text style={[styles.pillText, active && styles.pillTextActive, { color: active ? cardBg : subColor }]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -94,6 +103,7 @@ export default function AddTaskModal({
   onSearchChange,
   onToggleTask,
   onAddTask,
+  onDeleteTask,
   navigation,
 }) {
   const [modalVisible, setModalVisible] = useState(false);
@@ -154,7 +164,7 @@ export default function AddTaskModal({
         </View>
 
         {/* ── Section label + filters ── */}
-        <Text style={styles.sectionLabel}>Mis tareas</Text>
+        <Text style={[styles.sectionLabel, { color: textColor }]}>Mis tareas</Text>
         <View style={styles.filters}>
           {['Todas', 'Activas', 'Hechas'].map((f) => (
             <FilterPill
@@ -162,6 +172,11 @@ export default function AddTaskModal({
               label={f}
               active={filter === f}
               onPress={() => onFilterChange(f)}
+              accent={accent}
+              cardBg={cardBg}
+              textColor={textColor}
+              subColor={subColor}
+              divColor={divColor}
             />
           ))}
         </View>
@@ -171,7 +186,16 @@ export default function AddTaskModal({
           data={tasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TaskItem task={item} onToggle={onToggleTask} />
+            <TaskItem 
+              task={item} 
+              onToggle={onToggleTask} 
+              onDelete={onDeleteTask}
+              accent={accent}
+              cardBg={cardBg}
+              textColor={textColor}
+              subColor={subColor}
+              divColor={divColor}
+            />
           )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           style={{ flex: 1 }}
@@ -409,6 +433,15 @@ const styles = StyleSheet.create({
     color: C.textMuted,
     fontSize: 12,
     marginTop: 2,
+  },
+  taskActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteBtn: {
+    padding: 8,
+    borderRadius: 6,
   },
   tag: {
     paddingHorizontal: 8,
