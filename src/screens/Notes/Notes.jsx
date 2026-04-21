@@ -8,17 +8,19 @@ import {
   FlatList,
   StatusBar,
   Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../context/ThemeContext'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// ── Datos de ejemplo ─────────────────────────────────────────────────────────
 const NOTAS_EJEMPLO = [
-  { id: '1', titulo: 'Nota de ejemplo 1', fecha: 'este_mes' },
-  { id: '2', titulo: 'Nota de ejemplo 2', fecha: 'este_mes' },
-  { id: '3', titulo: 'Nota del mes pasado', fecha: 'mes_pasado' },
-  { id: '4', titulo: 'Otra nota', fecha: 'este_mes' },
+  { id: '1', titulo: 'Nota de ejemplo 1', fecha: 'este_mes'   },
+  { id: '2', titulo: 'Nota de ejemplo 2', fecha: 'este_mes'   },
+  { id: '3', titulo: 'Otra nota',         fecha: 'este_mes'   },
+  { id: '4', titulo: 'Nota del mes pasado', fecha: 'mes_pasado' },
 ]
 
 export default function AddNote({ navigation }) {
@@ -28,15 +30,36 @@ export default function AddNote({ navigation }) {
   const [busqueda,     setBusqueda]     = useState('')
   const [filtroActivo, setFiltroActivo] = useState('este_mes')
   const [notas,        setNotas]        = useState(NOTAS_EJEMPLO)
+  const [modalVisible, setModalVisible] = useState(false)
 
-  // ── Filtrar por tab + búsqueda ──────────────────────────────────────────────
+  // ── Estados del formulario dentro del modal ─────────────────────────────────
+  const [nuevoTitulo,    setNuevoTitulo]    = useState('')
+  const [nuevoContenido, setNuevoContenido] = useState('')
+
   const notasFiltradas = notas.filter(n => {
     const coincideFiltro   = n.fecha === filtroActivo
     const coincideBusqueda = n.titulo.toLowerCase().includes(busqueda.toLowerCase())
     return coincideFiltro && coincideBusqueda
   })
 
-  // ── Eliminar nota ───────────────────────────────────────────────────────────
+  // ── Crear nota nueva ────────────────────────────────────────────────────────
+  const crearNota = () => {
+    if (!nuevoTitulo.trim()) {
+      Alert.alert('Título requerido', 'Por favor escribe un título para la nota.')
+      return
+    }
+    const nueva = {
+      id:     Date.now().toString(),
+      titulo: nuevoTitulo.trim(),
+      contenido: nuevoContenido.trim(),
+      fecha:  filtroActivo, // la agrega al tab activo
+    }
+    setNotas(prev => [nueva, ...prev])
+    setNuevoTitulo('')
+    setNuevoContenido('')
+    setModalVisible(false)
+  }
+
   const eliminarNota = (id) => {
     Alert.alert(
       'Eliminar nota',
@@ -52,7 +75,6 @@ export default function AddNote({ navigation }) {
     )
   }
 
-  // ── Opciones extra (menú hamburguesa) ──────────────────────────────────────
   const masOpciones = (nota) => {
     Alert.alert(nota.titulo, 'Más opciones', [
       { text: 'Editar',      onPress: () => navigation.navigate('NoteForm', { nota }) },
@@ -61,7 +83,6 @@ export default function AddNote({ navigation }) {
     ])
   }
 
-  // ── Render de cada nota ─────────────────────────────────────────────────────
   const renderNota = ({ item }) => (
     <TouchableOpacity
       style={[styles.notaCard, { backgroundColor: cardBg }]}
@@ -69,11 +90,9 @@ export default function AddNote({ navigation }) {
       activeOpacity={0.75}
     >
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
-
       <Text style={[styles.notaTitulo, { color: textColor }]} numberOfLines={1}>
         {item.titulo}
       </Text>
-
       <View style={styles.notaAcciones}>
         <TouchableOpacity onPress={() => eliminarNota(item.id)} style={styles.accionBtn}>
           <Ionicons name="trash-outline" size={20} color={subColor} />
@@ -117,7 +136,7 @@ export default function AddNote({ navigation }) {
         )}
       </View>
 
-      {/* Filtros por fecha */}
+      {/* Filtros */}
       <View style={styles.filtros}>
         {[
           { key: 'este_mes',   label: 'Este mes'   },
@@ -144,7 +163,7 @@ export default function AddNote({ navigation }) {
 
       <View style={[styles.lineaSep, { backgroundColor: divColor }]} />
 
-      {/* Lista de notas */}
+      {/* Lista */}
       <FlatList
         data={notasFiltradas}
         keyExtractor={item => item.id}
@@ -163,10 +182,10 @@ export default function AddNote({ navigation }) {
         }
       />
 
-      {/* FAB - Agregar nota */}
+      {/* FAB — ahora abre el modal, ya no navega */}
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: accent, bottom: 76 + insets.bottom }]}
-        onPress={() => navigation.navigate('NoteForm')}
+        onPress={() => setModalVisible(true)}
         activeOpacity={0.85}
       >
         <Ionicons name="add" size={32} color="#fff" />
@@ -182,6 +201,67 @@ export default function AddNote({ navigation }) {
           <Text style={[styles.tabLabel, { color: subColor }]}>Tareas</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── Modal crear nota ────────────────────────────────────────────────── */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitulo, { color: textColor }]}>Nueva Nota</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={22} color={subColor} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={[styles.inputTitulo, { backgroundColor: bg, borderColor: divColor, color: textColor }]}
+              placeholder="Título de la nota..."
+              placeholderTextColor={subColor}
+              value={nuevoTitulo}
+              onChangeText={setNuevoTitulo}
+              maxLength={80}
+              autoFocus
+            />
+
+            <TextInput
+              style={[styles.inputContenido, { backgroundColor: bg, borderColor: divColor, color: textColor }]}
+              placeholder="Escribe tu nota aquí..."
+              placeholderTextColor={subColor}
+              value={nuevoContenido}
+              onChangeText={setNuevoContenido}
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+            />
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={[styles.btnCancelar, { borderColor: divColor }]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={[styles.btnCancelarText, { color: subColor }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btnCrear, { backgroundColor: accent }]}
+                onPress={crearNota}
+              >
+                <Text style={styles.btnCrearText}>Crear nota</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
     </SafeAreaView>
   )
 }
@@ -189,12 +269,10 @@ export default function AddNote({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  header: { 
-    flexDirection: 'row',
-    alignItems: 'center',
+  header: {
+    flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 12, 
-    paddingHorizontal: 20 
+    paddingBottom: 12, paddingHorizontal: 20,
   },
   headerTitle: { fontSize: 28, fontWeight: 'bold' },
 
@@ -228,19 +306,40 @@ const styles = StyleSheet.create({
     position: 'absolute', right: 24,
     width: 58, height: 58, borderRadius: 29,
     justifyContent: 'center', alignItems: 'center',
-    elevation: 6,
+    elevation: 6, zIndex: 1001,
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3, shadowRadius: 6,
-    zIndex: 1001,
   },
 
   tabBar: {
     flexDirection: 'row', position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: 64, borderTopWidth: 1,
-    zIndex: 1000,
+    left: 0, right: 0, height: 64,
+    borderTopWidth: 1, zIndex: 1000,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontSize: 15, fontWeight: '600' },
   tabIndicador: { position: 'absolute', bottom: 0, height: 2, width: '40%', borderRadius: 2 },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalCard: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitulo: { fontSize: 20, fontWeight: '700' },
+
+  inputTitulo: {
+    borderRadius: 12, borderWidth: 1,
+    fontSize: 16, fontWeight: '600',
+    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12,
+  },
+  inputContenido: {
+    borderRadius: 12, borderWidth: 1,
+    fontSize: 14, paddingHorizontal: 14, paddingVertical: 12,
+    marginBottom: 20, height: 120,
+  },
+
+  modalBtns: { flexDirection: 'row', gap: 12 },
+  btnCancelar: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', borderWidth: 1 },
+  btnCancelarText: { fontSize: 15, fontWeight: '600' },
+  btnCrear: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  btnCrearText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 })
